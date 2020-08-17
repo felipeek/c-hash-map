@@ -44,3 +44,9 @@ int main() {
     return 0;
 }
 ```
+
+```
+$ gcc -o main main.c
+$ ./main
+I got: 3
+```
