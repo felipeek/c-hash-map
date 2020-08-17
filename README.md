@@ -35,11 +35,20 @@ static unsigned int key_hash(const void *key) {
 
 int main() {
     Hash_Map hm;
-    hash_map_create(&hm, 1024, sizeof(char*), sizeof(int), key_compare, key_hash);
+    if (hash_map_create(&hm, 1024, sizeof(char*), sizeof(int), key_compare, key_hash)) {
+        printf("error creating the hash map.\n");
+        return -1;
+    }
     int value = 3;
-    hash_map_put(&hm, "my_key", &value);
+    if (hash_map_put(&hm, "my_key", &value)) {
+        printf("error putting element in the hash map.\n");
+        return -1;
+    }
     int got;
-    hash_map_get(&hm, "my_key", &got);
+    if (hash_map_get(&hm, "my_key", &got)) {
+        printf("error getting element from the hash map.\n");
+        return -1;
+    }
     printf("I got: %d\n", got);
     return 0;
 }
