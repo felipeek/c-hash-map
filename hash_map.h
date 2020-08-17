@@ -12,7 +12,7 @@
     This hash map works with a single chunk of memory. The memory is pre-allocated when the hash map is created
     (the size depends on the initial capacity provided by the caller). Whenever the hash map is half-full, the chunk is reallocated internally.
 
-    If allocations need to be avoided, create the hash map with initial capacity two times bigger than the number of maximum elements it will have.
+    If reallocations need to be avoided, create the hash map with initial capacity two times bigger than the number of maximum elements it will have.
     For example, if the maximum number of elements is 256, create the hash table with initial capacity of 512.
 
     Get and put operations are optimized. The delete operation is slower, since it might result in rearranging some elements.
