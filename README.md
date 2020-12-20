@@ -1,6 +1,6 @@
 # C Hash Map
 
-To use this hash map, define `HASH_MAP_IMPLEMENT` before including hash_map.h in one of your source files.
+To use this hash map, define `C_FEK_HASH_MAP_IMPLEMENT` before including hash_map.h in one of your source files.
 
 This hash map is not thread-safe.
 
@@ -10,12 +10,19 @@ If reallocations need to be avoided, create the hash map with initial capacity t
 
 Get and put operations are optimized. The delete operation is slower, since it might result in rearranging some elements.
 
+Define `C_FEK_HASH_MAP_NO_CRT` if you don't want the C Runtime Library included. If this is defined, you must provide implementations for the following functions:
+
+```c
+void *memcpy(void *destination, const void *source, size_t num)
+void *calloc(size_t num, size_t size)
+```
+
 For more information about the API, check the comments in the function signatures.
 
 A complete usage example:
 
 ```c
-#define HASH_MAP_IMPLEMENT
+#define C_FEK_HASH_MAP_IMPLEMENT
 #include "hash_map.h"
 #include <stdio.h>
 

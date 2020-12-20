@@ -1,11 +1,32 @@
-#ifndef C_HASH_MAP_H
-#define C_HASH_MAP_H
+#ifndef C_FEK_HASH_MAP_H
+#define C_FEK_HASH_MAP_H
 
 /*
     Author: Felipe Einsfeld Kersting
-    The MIT License
 
-    To use this hash map, define HASH_MAP_IMPLEMENT before including hash_map.h in one of your source files.
+    MIT License
+    
+    Copyright (c) 2019 Felipe Kersting
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+    
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+    
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+
+    To use this hash map, define C_FEK_HASH_MAP_IMPLEMENT before including hash_map.h in one of your source files.
 
     This hash map is not thread-safe.
 
@@ -17,11 +38,17 @@
 
     Get and put operations are optimized. The delete operation is slower, since it might result in rearranging some elements.
 
+    Define C_FEK_HASH_MAP_NO_CRT if you don't want the C Runtime Library included. If this is defined, you must provide
+    implementations for the following functions:
+    
+    void *memcpy(void *destination, const void *source, size_t num)
+    void *calloc(size_t num, size_t size)
+
     For more information about the API, check the comments in the function signatures.
 
     A complete usage example:
 
-    #define HASH_MAP_IMPLEMENT
+    #define C_FEK_HASH_MAP_IMPLEMENT
     #include "hash_map.h"
     #include <stdio.h>
 
@@ -106,9 +133,11 @@ void hash_map_destroy(Hash_Map *hm);
 // Putting or deleting elements might alter the hash table internal data structure, which will cause unexpected behavior.
 void hash_map_for_each_entry(Hash_Map *hm, For_Each_Func for_each_func, void *custom_data);
 
-#ifdef HASH_MAP_IMPLEMENT
+#ifdef C_FEK_HASH_MAP_IMPLEMENT
+#if !defined(C_FEK_HASH_MAP_NO_CRT)
 #include <string.h>
 #include <stdlib.h>
+#endif
 
 typedef struct {
     int valid;
