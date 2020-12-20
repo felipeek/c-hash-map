@@ -25,12 +25,16 @@
     #include "hash_map.h"
     #include <stdio.h>
 
-    static int key_compare(const void *key1, const void *key2) {
+    #define KEY_NAME "my_key"
+
+    static int key_compare(const void *_key1, const void *_key2) {
+        const char *key1 = *(const char **)_key1;
+        const char *key2 = *(const char **)_key2;
         return !strcmp(key1, key2);
     }
 
     static unsigned int key_hash(const void *key) {
-        const char *str = (const char *)key;
+        const char *str = *(const char **)key;
         unsigned int hash = 5381;
         int c;
         while ((c = *str++)) {
@@ -41,17 +45,18 @@
 
     int main() {
         Hash_Map hm;
-        if (hash_map_create(&hm, 1024, sizeof(char*), sizeof(int), key_compare, key_hash)) {
+        if (hash_map_create(&hm, 1024, sizeof(char *), sizeof(int), key_compare, key_hash)) {
             printf("error creating the hash map.\n");
             return -1;
         }
         int value = 3;
-        if (hash_map_put(&hm, "my_key", &value)) {
+        char* key = KEY_NAME;
+        if (hash_map_put(&hm, &key, &value)) {
             printf("error putting element in the hash map.\n");
             return -1;
         }
         int got;
-        if (hash_map_get(&hm, "my_key", &got)) {
+        if (hash_map_get(&hm, &key, &got)) {
             printf("error getting element from the hash map.\n");
             return -1;
         }
