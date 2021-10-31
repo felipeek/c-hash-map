@@ -41,8 +41,8 @@
     Define C_FEK_HASH_MAP_NO_CRT if you don't want the C Runtime Library included. If this is defined, you must provide
     implementations for the following functions:
     
-    void *memcpy(void *destination, const void *source, size_t num)
-    void *calloc(size_t num, size_t size)
+    void *memcpy(void *destination, const void *source, int num)
+    void *calloc(int num, int size)
 
     For more information about the API, check the comments in the function signatures.
 
@@ -92,21 +92,16 @@
     }
 */
 
-#include <stddef.h>
-
 // Compares two keys. Needs to return 1 if the keys are equal, 0 otherwise.
 typedef int (*Key_Compare_Func)(const void *key1, const void *key2);
 // Calculates the hash of the key.
 typedef unsigned int (*Key_Hash_Func)(const void *key);
-// Called for every key-value pair. 'key and 'value' contain the key and the value.
-// 'custom_data' contains the custom data sent in the 'hash_map_for_each_entry' call.
-typedef void (*For_Each_Func)(const void *key, const void* value, void* custom_data);
 // Do not change the Hash_Map struct
 typedef struct {
-    unsigned int capacity;
-    unsigned int num_elements;
-    size_t key_size;
-    size_t value_size;
+    int capacity;
+    int num_elements;
+    int key_size;
+    int value_size;
     Key_Compare_Func key_compare_func;
     Key_Hash_Func key_hash_func;
     void *data;
@@ -114,7 +109,7 @@ typedef struct {
 // Creates a hash map. 'initial_capacity' indicates the initial capacity of the hash_map, in number of elements.
 // 'key_compare_func' and 'key_hash_func' should be provided by the caller.
 // Returns 0 if sucess, -1 otherwise.
-int hash_map_create(Hash_Map *hm, unsigned int initial_capacity, size_t key_size, size_t value_size,
+int hash_map_create(Hash_Map *hm, int initial_capacity, int key_size, int value_size,
                     Key_Compare_Func key_compare_func, Key_Hash_Func key_hash_func);
 // Put an element in the hash map.
 // Returns 0 if sucess, -1 otherwise.
@@ -127,11 +122,16 @@ int hash_map_get(Hash_Map *hm, const void *key, void *value);
 int hash_map_delete(Hash_Map *hm, const void *key);
 // Destroys the hashmap, freeing the memory.
 void hash_map_destroy(Hash_Map *hm);
-// Calls a custom function for every entry in the hash map. The function 'for_each_func' must be provided.
-// 'custom_data' is a custom pointer that is repassed in every call.
-// NOTE: Do not put or delete elements to the same hash table inside the for_each_func.
-// Putting or deleting elements might alter the hash table internal data structure, which will cause unexpected behavior.
-void hash_map_for_each_entry(Hash_Map *hm, For_Each_Func for_each_func, void *custom_data);
+
+// The iterator identifier (check 'hash_map_get_iterator' and 'hash_map_iterator_next')
+typedef int Hash_Map_Iterator;
+// Identifies the end of an iteration
+#define HASH_MAP_ITERATOR_END (-1)
+// Gets an iterator. The iterator allows iterating through the contents of the hash map.
+Hash_Map_Iterator hash_map_get_iterator(Hash_Map *hm);
+// Gets the next key/value pair of the iteration. The 'iterator' parameter is first obtained by calling 'hash_map_get_iterator'
+// The return value is the iterator that must be used in the next iteration. If no more elements, HASH_MAP_ITERATOR_END is returned.
+Hash_Map_Iterator hash_map_iterator_next(Hash_Map *hm, Hash_Map_Iterator iterator, void *key, void *value);
 
 #ifdef C_FEK_HASH_MAP_IMPLEMENT
 #if !defined(C_FEK_HASH_MAP_NO_CRT)
@@ -168,12 +168,18 @@ static void put_element_value(Hash_Map *hm, unsigned int index, const void *valu
     memcpy(target, value, hm->value_size);
 }
 
-int hash_map_create(Hash_Map *hm, unsigned int initial_capacity, size_t key_size, size_t value_size,
+int hash_map_create(Hash_Map *hm, int initial_capacity, int key_size, int value_size,
                     Key_Compare_Func key_compare_func, Key_Hash_Func key_hash_func) {
     hm->key_compare_func = key_compare_func;
     hm->key_hash_func = key_hash_func;
     hm->key_size = key_size;
+    if (hm->key_size <= 0) {
+        return -1;
+    }
     hm->value_size = value_size;
+    if (hm->value_size <= 0) {
+        return -1;
+    }
     hm->capacity = initial_capacity > 0 ? initial_capacity : 1;
     hm->num_elements = 0;
     hm->data = calloc(hm->capacity, sizeof(Hash_Map_Element_Information) + key_size + value_size);
@@ -189,10 +195,14 @@ void hash_map_destroy(Hash_Map *hm) {
 
 static int hash_map_grow(Hash_Map *hm) {
     Hash_Map old_hm = *hm;
-    if (hash_map_create(hm, old_hm.capacity << 1, old_hm.key_size, old_hm.value_size, old_hm.key_compare_func, old_hm.key_hash_func)) {
+    int new_capacity = old_hm.capacity << 1;
+    if (new_capacity < 0) {
         return -1;
     }
-    for (unsigned int pos = 0; pos < old_hm.capacity; ++pos) {
+    if (hash_map_create(hm, new_capacity, old_hm.key_size, old_hm.value_size, old_hm.key_compare_func, old_hm.key_hash_func)) {
+        return -1;
+    }
+    for (int pos = 0; pos < old_hm.capacity; ++pos) {
         Hash_Map_Element_Information *hmei = get_element_information(&old_hm, pos);
         if (hmei->valid) {
             void *key = get_element_key(&old_hm, pos);
@@ -241,7 +251,9 @@ int hash_map_get(Hash_Map *hm, const void *key, void *value) {
             void *possible_key = get_element_key(hm, pos);
             if (hm->key_compare_func(possible_key, key)) {
                 void *entry_value = get_element_value(hm, pos);
-                memcpy(value, entry_value, hm->value_size);
+                if (value) {
+                    memcpy(value, entry_value, hm->value_size);
+                }
                 return 0;
             }
         } else {
@@ -294,15 +306,31 @@ int hash_map_delete(Hash_Map *hm, const void *key) {
     }
 }
 
-void hash_map_for_each_entry(Hash_Map *hm, For_Each_Func for_each_func, void *custom_data) {
-    for (unsigned int pos = 0; pos < hm->capacity; ++pos) {
+Hash_Map_Iterator hash_map_get_iterator(Hash_Map *hm) {
+    return (Hash_Map_Iterator)0;
+}
+
+Hash_Map_Iterator hash_map_iterator_next(Hash_Map *hm, Hash_Map_Iterator iterator, void *key, void *value) {
+    if (iterator == HASH_MAP_ITERATOR_END) {
+        return HASH_MAP_ITERATOR_END;
+    }
+
+    for (int pos = iterator; pos < hm->capacity; ++pos) {
         Hash_Map_Element_Information *hmei = get_element_information(hm, pos);
         if (hmei->valid) {
-            void *key = get_element_key(hm, pos);
-            void *value = get_element_value(hm, pos);
-            for_each_func(key, value, custom_data);
+            if (key) {
+                void *entry_key = get_element_key(hm, pos);
+                memcpy(key, entry_key, hm->key_size);
+            }
+            if (value) {
+                void *entry_value = get_element_value(hm, pos);
+                memcpy(value, entry_value, hm->value_size);
+            }
+            return (Hash_Map_Iterator)(pos + 1);
         }
     }
+
+    return HASH_MAP_ITERATOR_END;
 }
 #endif
 #endif
