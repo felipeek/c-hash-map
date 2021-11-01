@@ -108,17 +108,18 @@ typedef struct {
 } Hash_Map;
 // Creates a hash map. 'initial_capacity' indicates the initial capacity of the hash_map, in number of elements.
 // 'key_compare_func' and 'key_hash_func' should be provided by the caller.
-// Returns 0 if sucess, -1 otherwise.
+// Returns 0 if success, -1 otherwise.
 int hash_map_create(Hash_Map *hm, int initial_capacity, int key_size, int value_size,
                     Key_Compare_Func key_compare_func, Key_Hash_Func key_hash_func);
 // Put an element in the hash map.
-// Returns 0 if sucess, -1 otherwise.
+// If an element with same key is already in the map (based on 'key_compare_func'), the element is replaced
+// Returns 0 if success, -1 otherwise.
 int hash_map_put(Hash_Map *hm, const void *key, const void *value);
 // Get an element from the hash map. Note that the received element is a copy and not the actual element in the hash map.
-// Returns 0 if sucess, -1 otherwise.
+// Returns 0 if element was found, -1 if not found.
 int hash_map_get(Hash_Map *hm, const void *key, void *value);
 // Delete an element from the hash map.
-// Returns 0 if sucess, -1 otherwise.
+// Returns 0 if element was found (and, consequentially, deleted), -1 if not found.
 int hash_map_delete(Hash_Map *hm, const void *key);
 // Destroys the hashmap, freeing the memory.
 void hash_map_destroy(Hash_Map *hm);
