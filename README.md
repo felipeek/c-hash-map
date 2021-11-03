@@ -13,8 +13,8 @@ Get and put operations are optimized. The delete operation is slower, since it m
 Define `C_FEK_HASH_MAP_NO_CRT` if you don't want the C Runtime Library included. If this is defined, you must provide implementations for the following functions:
 
 ```c
-void *memcpy(void *destination, const void *source, size_t num);
-void *calloc(size_t num, size_t size);
+void *memcpy(void *destination, const void *source, int num);
+void *calloc(int num, int size);
 ```
 
 For more information about the API, check the comments in the function signatures.
